@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: discord-bot-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+      - backend-data:/app/data
+      - backend-temp:/app/temp
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - discord-bot-network
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./bot-config-ui
+      dockerfile: Dockerfile.dev
+    container_name: discord-bot-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./bot-config-ui:/app
+      - frontend-node-modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - discord-bot-network
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  backend-node-modules:
+    driver: local
+  frontend-node-modules:
+    driver: local
+  backend-data:
+    driver: local
+  backend-temp:
+    driver: local
+
+networks:
+  discord-bot-network:
+    driver: bridge

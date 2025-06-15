@@ -1,0 +1,52 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: discord-bot-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - backend-data:/app/data
+      - backend-temp:/app/temp
+      - ./backend/config.json:/app/config.json
+    environment:
+      - NODE_ENV=production
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./bot-config-ui
+      dockerfile: Dockerfile
+    container_name: discord-bot-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  backend-data:
+    driver: local
+  backend-temp:
+    driver: local
+
+networks:
+  discord-bot-network:
+    driver: bridge
